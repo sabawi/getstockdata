@@ -290,14 +290,14 @@ def download_sp_constituents():
 def main():
     logstart()
 
-    # uncomment the line below when done
+    # uncomment the line below when done debugging
     download_sp_constituents()
 
     # Get S&P 500 Constituents, their Sectors, and Industry
     get_sp_constituents()
 
     # Get S&P 500 historical prices
-    # uncomment the line below when done
+    # uncomment the line below when done debugging
     download_stock_data()
 
     # Get S&P 500 stock fundamentals

@@ -284,6 +284,7 @@ def download_sp_constituents():
     url = "https://datahub.io/core/s-and-p-500-companies/r/constituents.csv"
     data = request.urlopen(url).read().decode('utf-8')
 
+    os.makedirs("./data", exist_ok=True) 
     with open('./data/sp_const.csv', 'w') as csvfile:
         csvfile.write(data)
 

@@ -158,7 +158,7 @@ def download_stock_fund(Source='STOCKPOP'):
             url_list[
                 'balance-sheet-statement'] = 'https://financialmodelingprep.com/api/v3/financials/balance-sheet-statement/' + s + '?datatype=csv&period=quarter'
             url_list[
-                'enterprise-value'] = 'https://financialmodelingprep.com/api/v3/enterprise-value/' + s + '?datatype=csv&period=quarter'
+                'enterprise-value'] = 'https://financialmodelingprep.com/api/v3/enterprise-value/' + s + '?period=quarter'
             url_list[
                 'company-key-metrics'] = 'https://financialmodelingprep.com/api/v3/company-key-metrics/' + s + '?datatype=csv&period=quarter'
             url_list[
@@ -185,7 +185,7 @@ def download_stock_fund(Source='STOCKPOP'):
                     logevent(url)
                     response = urlopen(url)
                     # print(response.headers['content-type'])
-                    if response.headers['content-type'] == 'text/csv;charset=UTF-8':
+                    if response.headers['content-type'].lower() == 'text/csv;charset=utf-8' or response.headers['Content-Type'].lower() == 'text/csv;charset=utf-8':
                         raw_data = response.read().decode("utf-8")
 
                         csvfilename = directory + 'Temp_' + s + '_' + key + '.csv'
@@ -195,9 +195,18 @@ def download_stock_fund(Source='STOCKPOP'):
                         csvfilename_out = directory + s + '_' + key + '.csv'
                         pd.read_csv(csvfilename, header=None).T.to_csv(csvfilename_out, header=False, index=False)
                         os.remove(csvfilename)
-                    elif response.headers['content-type'] == 'application/json;charset=utf-8':
+                    elif response.headers['content-type'].lower() == 'application/json;charset=utf-8' or response.headers['Content-Type'].lower() == 'application/json;charset=utf-8':
                         raw_data = requests.get(url)
                         data = raw_data.json()
+
+                        if len(data) == 0:
+                            print(s + ' data.dict Empty ERROR -- Skipped')
+                            logevent(s + ' data.dict Empty ERROR -- Skipped')
+                            continue
+                        elif 'Error' in data.keys():
+                            print(s + ' data.dict ', data['Error'], ' ERROR -- Skipped')
+                            logevent(s + ' data.dict ' + str(data['Error']) + ' ERROR -- Skipped')
+                            continue
 
                         l = list(data.keys())
                         keyl = l[1]

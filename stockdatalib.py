@@ -221,12 +221,6 @@ def plot_basic_charts():
     main_df = pd.merge(main_df1, main_df2, on='date')
     main_df = pd.merge(main_df, main_df3, on='date')
     main_df = pd.merge(main_df, main_df4, on='date')
-    # dates = pd.DataFrame({'date': main_df_org['cash-flow-statement'].index})
-    # main_df['Timestamps​'] = dates
-    # main_df = main_df.set_index('date')
-    # print(dates)
-    # print(price_df['Timestamps'][0])
-    # main_df = sd.df_start_after_datetime(main_df, price_df['Timestamps'][0])
 
     # Calculate the moving averages
     MADays = [40, 100, 200]
@@ -327,11 +321,7 @@ def plot_basic_charts():
 
     axs[0].set_ylabel('Stock Price')
 
-    # earn_df =
-
     dic = [{}]
-    p_over_e_df = [{}]  # pd.DataFrame(columns=['Timestamps','Price/Earning'])
-
     i = 0
     main_df['EPS'] = MakeFund_Subset(main_df_org['income-statement'], ['EPS'])
     main_df['PE ratio'] = MakeFund_Subset(main_df_org['company-key-metrics'], ['PE ratio'])
@@ -392,4 +382,48 @@ def plot_basic_charts():
         ax.minorticks_on()
         ax.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
 
-def vital_data():
+def quote(symbol):
+    set_stock(symbol)
+
+    price_df = GetStockDataFrame(stock)
+    date = price_df['Timestamps'].iloc[-1]
+    price = np.round(price_df['AdjClose'].iloc[-1],2)
+    vol = price_df['Volume'].iloc[-1]
+
+    dict = {'symbol' :[symbol], 'date' : [date], 'close' : [price], 'volume': [vol]}
+
+    res = pd.DataFrame(dict)
+    return res
+
+def key_stat(symbol):
+    set_stock(symbol)
+
+    # Get stock company information
+    sp_df = pd.read_csv(sp_cons_csv)
+    stock_info = sp_df[sp_df.Symbol == stock.upper()]
+    company_name = stock_info['Name'].iloc[0]
+    company_sector = stock_info['Sector'].iloc[0]
+
+    # Load the stock fundamental data
+    keys, column_map, main_df_org = GetFund_Dict(stock)
+
+    date = main_df_org['income-statement'].index[-1]
+    revenue = main_df_org['income-statement']['Revenue'].iloc[-1]
+    earning_before_tax = main_df_org['income-statement']['Earnings before Tax'].iloc[-1]
+    net_income = main_df_org['income-statement']['Net Income'].iloc[-1]
+    free_cash_flow_margin = main_df_org['income-statement']['Free Cash Flow margin'].iloc[-1]
+    gross_profit =  main_df_org['income-statement']['Gross Profit'].iloc[-1]
+
+    number_of_shares = main_df_org['enterprise-value']['Number of Shares'].iloc[-1]
+
+    free_cash_flow_per_share = main_df_org['company-key-metrics']['Free Cash Flow per Share'].iloc[-1]
+
+    pe_ratio = main_df_org['company-key-metrics']['PE ratio'].iloc[-1]
+    eps = main_df_org['income-statement']['EPS'].iloc[-1]
+
+    dict = {'symbol': [symbol], 'Date': [date], 'No. of Shares' : [number_of_shares],'Revenue': [revenue], 'Earning before Tax': [earning_before_tax],
+            'PE Ratio' : [pe_ratio] ,'Earning per Share':[eps] ,'Net Income' : [net_income], 'Free Cash Flow Margin' : [free_cash_flow_margin],
+            'Gross Profit' : [gross_profit], 'Free Cash Flow per Share' : [free_cash_flow_per_share]}
+
+    res = pd.DataFrame(dict)
+    return res

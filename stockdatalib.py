@@ -114,6 +114,7 @@ def GetStockDataFrame(symbol):
     df['Volume'] = data["chart"]["result"][0]["indicators"]["quote"][0]["volume"]
     df['Volume'] = df['Volume'].astype(int)
 
+    df.set_index('Timestamps', inplace=True)
     return df
 
 
@@ -128,8 +129,6 @@ def GetFund_Dict(symbol):
     for src in sources:
         filename_list[src] = directory + stock.lower() + '_' + src + '.csv'
         fund_df_list[src] = pd.DataFrame()
-
-    # fund_df = pd.DataFrame(columns = sources)
 
     try:
         for src in sources:
@@ -194,8 +193,11 @@ def skip_every_n(df, n):
     return df2
 
 
-def plot_basic_charts(symbol):
+def plot_basic_charts(symbol, price_df = {}):
     set_stock(symbol)
+
+    if len(price_df)==0:
+        price_df = GetStockDataFrame(get_stock())
 
     stock_info = get_stock_info(symbol)
     # Get stock company information
@@ -203,7 +205,7 @@ def plot_basic_charts(symbol):
     company_sector = stock_info['sector'][0]
 
     stock_title = stock.upper() + ' ' + '(' + company_name + ')' + ' [' + company_sector + ' Sector]'
-    price_df = GetStockDataFrame(stock)
+    #price_df = GetStockDataFrame(stock)
 
     # Load the stock fundamental data
     keys, column_map, main_df_org = GetFund_Dict(stock)
@@ -232,21 +234,22 @@ def plot_basic_charts(symbol):
 
     # Calculate the moving averages
     MADays = [40, 100, 200]
-    MA = [{}]
+    #MA = [{}]
     ma_names = []
     for ma in MADays:
         mean_name = str(ma) + ' days MA'
         ma_names.append(mean_name)
         tmp_df = pd.DataFrame(
-            {'Timestamps': price_df['Timestamps'].to_list(), mean_name: price_df['AdjClose'].rolling(window=ma).mean()})
-        price_df = pd.merge(price_df, tmp_df, on='Timestamps')
+            {'Timestamps': price_df.index.to_list(), mean_name: price_df['AdjClose'].rolling(window=ma).mean()})
+        price_df = pd.merge(price_df, tmp_df, left_index=True, right_index=True)
 
     fig = plt.figure(figsize=(15, 6))
 
     linear_trends_df = pd.DataFrame()
+    last_date = price_df.index[-1]
     # ***************************************************
     # Find the full trend line
-    x = range(len(price_df['Timestamps']))
+    x = range(len(price_df.index))
     fit = np.polyfit(x, price_df['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
     linear_trends_df['5 Years Trend Line Function'] = [str(fit_fn).strip()]
@@ -258,11 +261,11 @@ def plot_basic_charts(symbol):
     price_df['5 Yr Trend'] = trend
     # ***************************************************
 
-    twoyears_ago = datetime.datetime.today() - datetime.timedelta(days=2 * 365)
-    price_df_2y = price_df[price_df['Timestamps'] > twoyears_ago].copy(deep=True)
+    twoyears_ago = last_date - datetime.timedelta(days=2 * 365)
+    price_df_2y = price_df[price_df.index > twoyears_ago].copy(deep=True)
     # price_df = price_df_2y
     # Find the 2 years trend line
-    x = range(len(price_df_2y['Timestamps']))
+    x = range(len(price_df_2y.index))
     fit = np.polyfit(x, price_df_2y['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
     linear_trends_df['2 Years Trend Line Function'] = [str(fit_fn).strip()]
@@ -274,10 +277,10 @@ def plot_basic_charts(symbol):
     price_df_2y['2 Yr Trend'] = trend
     # ***************************************************
 
-    oneyears_ago = datetime.datetime.today() - datetime.timedelta(days=1 * 365)
-    price_df_1y = price_df[price_df['Timestamps'] > oneyears_ago].copy(deep=True)
+    oneyears_ago = last_date - datetime.timedelta(days=1 * 365)
+    price_df_1y = price_df[price_df.index > oneyears_ago].copy(deep=True)
     # Find the 1 year trend line
-    x = range(len(price_df_1y['Timestamps']))
+    x = range(len(price_df_1y.index))
     fit = np.polyfit(x, price_df_1y['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
     linear_trends_df['1 Year Trend Line Function'] = [str(fit_fn).strip()]
@@ -289,10 +292,10 @@ def plot_basic_charts(symbol):
     price_df_1y['1 Yr Trend'] = trend
     # ***************************************************
 
-    sixmonth_ago = datetime.datetime.today() - datetime.timedelta(days=0.5 * 365)
-    price_df_6m = price_df[price_df['Timestamps'] > sixmonth_ago].copy(deep=True)
+    sixmonth_ago = last_date - datetime.timedelta(days=0.5 * 365)
+    price_df_6m = price_df[price_df.index > sixmonth_ago].copy(deep=True)
     # Find the 6 months trend line
-    x = range(len(price_df_6m['Timestamps']))
+    x = range(len(price_df_6m.index))
     fit = np.polyfit(x, price_df_6m['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
     linear_trends_df['6 Months Trend Line Function'] = [str(fit_fn).strip()]
@@ -304,9 +307,9 @@ def plot_basic_charts(symbol):
     price_df_6m['6 Month Trend'] = trend
     # ***************************************************
 
-    ts = pd.to_datetime(str(price_df['Timestamps'].iloc[0]))
+    ts = pd.to_datetime(str(price_df.index[0]))
     frm = ts.strftime('%Y-%m-%d')
-    ts = pd.to_datetime(str(price_df['Timestamps'].iloc[-1]))
+    ts = pd.to_datetime(str(price_df.index[-1]))
     to = ts.strftime('%Y-%m-%d')
 
     stock_title = stock_title + '\nFrom ' + frm \
@@ -322,11 +325,11 @@ def plot_basic_charts(symbol):
         y_list.append(ma)
     y_list.append('5 Yr Trend')
 
-    price_df.plot(ax=axs[0], x='Timestamps', y=y_list,
+    price_df.plot(ax=axs[0], y=y_list,
                   title=stock_title, lw=2)
-    price_df_2y.plot(ax=axs[0], x='Timestamps', y=['2 Yr Trend'], lw=2)
-    price_df_1y.plot(ax=axs[0], x='Timestamps', y=['1 Yr Trend'], lw=2)
-    price_df_6m.plot(ax=axs[0], x='Timestamps', y=['6 Month Trend'], grid=True, lw=2)
+    price_df_2y.plot(ax=axs[0], y=['2 Yr Trend'], lw=2)
+    price_df_1y.plot(ax=axs[0], y=['1 Yr Trend'], lw=2)
+    price_df_6m.plot(ax=axs[0], y=['6 Month Trend'], grid=True, lw=2)
 
     axs[0].set_ylabel('Stock Price')
 
@@ -338,7 +341,7 @@ def plot_basic_charts(symbol):
     from_date = main_df['EPS'].index[i]
 
     to_date = main_df['EPS'].index[i + 1]
-    for d in price_df['Timestamps']:
+    for d in price_df.index:
         if d > to_date:
             i = i + 1
             if i < len(main_df['EPS']) - 1:
@@ -359,7 +362,7 @@ def plot_basic_charts(symbol):
             cc = main_df[main_df.index == from_date]['Free Cash Flow'][0]
             gg = main_df[main_df.index == from_date]['Gross Profit'][0]
 
-            kk = price_df[price_df['Timestamps'] == d]['AdjClose'].values[0]
+            kk = price_df[price_df.index == d]['AdjClose'].values[0]
 
             dic.append({'Timestamps': d, 'Calc. P/E': (kk / jj) / 4.0, 'EPS': jj,
                         'P/E': pp, 'FCF/Share': ff, 'Revenue': rr,
@@ -394,9 +397,9 @@ def plot_basic_charts(symbol):
     return linear_trends_df
 
 
-def TrendsPlot(symbol, price_df = ''):
+def TrendsPlot(symbol, price_df = {}):
     set_stock(symbol)
-    if price_df == '':
+    if len(price_df)==0:
         price_df = GetStockDataFrame(get_stock())
 
     # Get stock company information
@@ -410,7 +413,6 @@ def TrendsPlot(symbol, price_df = ''):
     dif_period = 5
 
     # Load stock End of Day prices file
-    price_data_df = GetStockDataFrame(get_stock())
 
     price_change = 'Price $ Change from ' + str(dif_period) + ' days ago'
     price_data_df[price_change] = price_data_df['AdjClose'].diff(dif_period).dropna().astype(float)
@@ -421,9 +423,10 @@ def TrendsPlot(symbol, price_df = ''):
     volume_change_percent = 'Volume % Change from ' + str(dif_period) + ' days ago'
     price_data_df[volume_change_percent] = price_data_df['Volume'].pct_change(dif_period).dropna().astype(float) * 100
 
+    last_date = price_data_df.index[-1]
     # ***************************************************
     # Find the full trend line
-    x = range(len(price_data_df['Timestamps']))
+    x = range(len(price_data_df.index))
     fit = np.polyfit(x, price_data_df['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
     trend = []
@@ -433,10 +436,10 @@ def TrendsPlot(symbol, price_df = ''):
     price_data_df['5 Yr Trend'] = trend
     # ***************************************************
 
-    twoyears_ago = datetime.datetime.today() - datetime.timedelta(days=2 * 365)
-    price_df_2y = price_data_df[price_data_df['Timestamps'] > twoyears_ago].copy(deep=True)
+    twoyears_ago = last_date - datetime.timedelta(days=2 * 365)
+    price_df_2y = price_data_df[price_data_df.index > twoyears_ago].copy(deep=True)
     # Find the 2 years trend line
-    x = range(len(price_df_2y['Timestamps']))
+    x = range(len(price_df_2y.index))
     fit = np.polyfit(x, price_df_2y['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
     trend = []
@@ -446,10 +449,10 @@ def TrendsPlot(symbol, price_df = ''):
     price_df_2y['2 Yr Trend'] = trend
     # ***************************************************
 
-    oneyears_ago = datetime.datetime.today() - datetime.timedelta(days=1 * 365)
-    price_df_1y = price_data_df[price_data_df['Timestamps'] > oneyears_ago].copy(deep=True)
+    oneyears_ago = last_date - datetime.timedelta(days=1 * 365)
+    price_df_1y = price_data_df[price_data_df.index > oneyears_ago].copy(deep=True)
     # Find the 1 year trend line
-    x = range(len(price_df_1y['Timestamps']))
+    x = range(len(price_df_1y.index))
     fit = np.polyfit(x, price_df_1y['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
     trend = []
@@ -459,10 +462,10 @@ def TrendsPlot(symbol, price_df = ''):
     price_df_1y['1 Yr Trend'] = trend
     # ***************************************************
 
-    sixmonth_ago = datetime.datetime.today() - datetime.timedelta(days=0.5 * 365)
-    price_df_6m = price_data_df[price_data_df['Timestamps'] > sixmonth_ago].copy(deep=True)
+    sixmonth_ago = last_date - datetime.timedelta(days=0.5 * 365)
+    price_df_6m = price_data_df[price_data_df.index > sixmonth_ago].copy(deep=True)
     # Find the 6 months trend line
-    x = range(len(price_df_6m['Timestamps']))
+    x = range(len(price_df_6m.index))
     fit = np.polyfit(x, price_df_6m['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
     trend = []
@@ -473,9 +476,9 @@ def TrendsPlot(symbol, price_df = ''):
     # ***************************************************
 
     stock_title = stock.upper() + ' ' + '(' + company_name + ')' + ' [' + company_sector + ' Sector]'
-    ts = pd.to_datetime(str(price_data_df['Timestamps'].iloc[0]))
+    ts = pd.to_datetime(str(price_data_df.index[0]))
     frm = ts.strftime('%Y-%m-%d')
-    ts = pd.to_datetime(str(price_data_df['Timestamps'].iloc[-1]))
+    ts = pd.to_datetime(str(price_data_df.index[-1]))
     to = ts.strftime('%Y-%m-%d')
 
     stock_title = stock_title + '\nFrom ' + frm + ' To ' + to
@@ -483,8 +486,6 @@ def TrendsPlot(symbol, price_df = ''):
     price_data_df['2 Yr Trend'] = price_df_2y['2 Yr Trend'].copy(deep=True)
     price_data_df['1 Yr Trend'] = price_df_1y['1 Yr Trend'].copy(deep=True)
     price_data_df['6 Month Trend'] = price_df_6m['6 Month Trend'].copy(deep=True)
-
-    price_data_df.set_index('Timestamps', inplace=True)
 
     # , squeeze=True, gridspec_kw = {'height_ratios':[1,2,5,2,3]}
     fig, axs = plt.subplots(8, figsize=(15, 25), sharex=True,
@@ -569,7 +570,7 @@ def quote(symbol):
     set_stock(symbol)
 
     price_df = GetStockDataFrame(stock)
-    date = price_df['Timestamps'].iloc[-1]
+    date = price_df.index[-1]
     price = np.round(price_df['AdjClose'].iloc[-1],2)
     vol = price_df['Volume'].iloc[-1]
 

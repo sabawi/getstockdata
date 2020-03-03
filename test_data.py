@@ -12,15 +12,18 @@ sd.set_data_directory('./data/')
 stock_count, stock_fields, sp_df = sd.GetSP500_List()
 
 # Set stock symbol
-sd.set_stock('jpm')
+sd.set_stock('aapl')
 
-stock_info = sd.get_stock_info('jpm')
+stock_info = sd.get_stock_info('aapl')
 # Get stock company information
 company_name = stock_info['name'][0]
 company_sector = stock_info['sector'][0]
 
 # Plot stock basic charts
-linear_trends = sd.plot_basic_charts('jpm')
+price_df = sd.GetStockDataFrame('aapl')
+price_df = sd.DatesRange(price_df, '2017-01-01','2018-08-01')
+print(price_df)
+linear_trends = sd.plot_basic_charts('aapl',price_df)
 
 # Linear Regression Equations returned by the plot call
 linear_trends
@@ -40,7 +43,7 @@ sd.plot_basic_charts('amzn')
 price_df = sd.GetStockDataFrame('fb')
 
 # Index the data frame by 'Timestamps' column
-price_df.set_index('Timestamps',inplace=True)
+# price_df.set_index('Timestamps',inplace=True)
 
 # Load the stock fundamental data
 keys, column_map, main_df_org = sd.GetFund_Dict('fb')
@@ -109,7 +112,10 @@ sd.plot_basic_charts('nflx')
 # # Plot a single key stat item
 main_df['Net Income'].plot(figsize=(12,8), title = sd.get_stock().upper()).grid()
 
-price_data_df, maxtable_df = sd.TrendsPlot('c')
+price_df = sd.GetStockDataFrame('c')
+price_df = sd.DatesRange(price_df, '2017-01-01','2018-08-01')
+print(price_df)
+price_data_df, maxtable_df = sd.TrendsPlot('c',price_df)
 
 maxtable_df
 

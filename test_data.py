@@ -43,7 +43,6 @@ sd.plot_basic_charts('amzn')
 price_df = sd.GetStockDataFrame('fb')
 
 # Index the data frame by 'Timestamps' column
-# price_df.set_index('Timestamps',inplace=True)
 
 # Load the stock fundamental data
 keys, column_map, main_df_org = sd.GetFund_Dict('fb')
@@ -52,7 +51,7 @@ keys, column_map, main_df_org = sd.GetFund_Dict('fb')
 # # Searching for data by column name
 # Search for a key word in the data column names
 table,text = sd.FindColumn('Revenue')
-table
+print(table)
 
 # Now we know where 'Capex to Revenue' is, we can load it from the DataFrame source 'company-key-metrics' as 
 # the code below
@@ -117,10 +116,10 @@ price_df = sd.DatesRange(price_df, '2017-01-01','2018-08-01')
 print(price_df)
 price_data_df, maxtable_df = sd.TrendsPlot('c',price_df)
 
-maxtable_df
+print(maxtable_df)
 
 price_data_df.describe()
 
 f,s = sd.FindColumn('cash flow')
-f
+print(f)
 

@@ -165,7 +165,7 @@ def download_stock_fund(Source='STOCKPOP'):
                 'financial-ratios'] = 'https://financialmodelingprep.com/api/v3/financial-ratios/' + s + '?datatype=csv&period=quarter'
 
         else:
-            print('*** Error: Invalid data source URL', url, ' ***')
+            #print('*** Error: Invalid data source URL', url, ' ***')
             logevent('ERROR ' + s + ': ' + '*** Error: Invalid data source URL', url, ' ***')
             return
 
@@ -200,11 +200,11 @@ def download_stock_fund(Source='STOCKPOP'):
                         data = raw_data.json()
 
                         if len(data) == 0:
-                            print(s + ' data.dict Empty ERROR -- Skipped')
+                            #print(s + ' data.dict Empty ERROR -- Skipped')
                             logevent(s + ' data.dict Empty ERROR -- Skipped')
                             continue
                         elif 'Error' in data.keys():
-                            print(s + ' data.dict ', data['Error'], ' ERROR -- Skipped')
+                            #print(s + ' data.dict ', data['Error'], ' ERROR -- Skipped')
                             logevent(s + ' data.dict ' + str(data['Error']) + ' ERROR -- Skipped')
                             continue
 
@@ -299,22 +299,27 @@ def download_sp_constituents():
 
 def main():
     logstart()
-
+    print("Wait! Download in progress ... this may take a while")
     # uncomment the line below when done debugging
+    print("-- Downloading stocks list!")
     download_sp_constituents()
 
     # Get S&P 500 Constituents, their Sectors, and Industry
     get_sp_constituents()
+    print("-- Done!")
 
     # Get S&P 500 historical prices
-    # uncomment the line below when done debugging
+    print("-- Downloading latest End of Day pricing data ...")
     download_stock_data()
+    print("-- Done!")
 
     # Get S&P 500 stock fundamentals
+    print("-- Downloading fundamental company data ...")
     fund_sources = ['STOCKPOP','FMP']
     download_stock_fund(fund_sources[1])
 
     logevent("Done!")
+    print('********* Data Download Completed *********')
 
 if __name__== "__main__":
   main()

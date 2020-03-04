@@ -379,19 +379,20 @@ def plot_basic_charts(symbol, price_df = {}):
             continue
 
     plots_df = pd.DataFrame(dic).dropna()
+    plots_df.set_index('Timestamps',inplace=True)
 
-    plots_df.plot(ax=axs[1],x='Timestamps', y=['EPS'], grid=True, lw=4)
-    plots_df.plot(ax=axs[1],x='Timestamps', y=['FCF/Share'], grid=True, lw=4)
+    plots_df.plot(ax=axs[1], y=['EPS'], grid=True, lw=4)
+    plots_df.plot(ax=axs[1], y=['FCF/Share'], grid=True, lw=4)
     axs[1].set_ylabel('Earning && FCF/Share')
-    plots_df.plot(ax=axs[2],x='Timestamps', y=['P/E'], grid=True, lw=4)
-    plots_df.plot(ax=axs[2],x='Timestamps', y=['Calc. P/E'], grid=True, lw=4)
+    plots_df.plot(ax=axs[2], y=['P/E'], grid=True, lw=4)
+    plots_df.plot(ax=axs[2], y=['Calc. P/E'], grid=True, lw=4)
     axs[2].set_ylabel('Price/Earning (P/E)')
 
-    plots_df.plot(ax=axs[3],x='Timestamps', y=['Revenue'], lw=4)
-    plots_df.plot(ax=axs[3],x='Timestamps', y=['Earnings before Tax'], lw=4)
-    plots_df.plot(ax=axs[3],x='Timestamps', y=['Net Income'], lw=4)
-    plots_df.plot(ax=axs[3],x='Timestamps', y=['Free Cash Flow'], lw=4)
-    plots_df.plot(ax=axs[3],x='Timestamps', y=['Gross Profit'], grid=True, lw=4)
+    plots_df.plot(ax=axs[3], y=['Revenue'], lw=4)
+    plots_df.plot(ax=axs[3], y=['Earnings before Tax'], lw=4)
+    plots_df.plot(ax=axs[3], y=['Net Income'], lw=4)
+    plots_df.plot(ax=axs[3], y=['Free Cash Flow'], lw=4)
+    plots_df.plot(ax=axs[3], y=['Gross Profit'], grid=True, lw=4)
 
     axs[3].set_ylabel('Growth')
 

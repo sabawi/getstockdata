@@ -20,11 +20,12 @@ def set_stock(s):
     global fund_filename
     global sp_df
 
+    stock = s.lower()
+
     if (directory == ''):
         raise NameError("Error: 'data directory' is NOT set")
         print('ERROR')
     else:
-        stock = s.lower()
         sp_df = pd.read_csv(sp_cons_csv)
         if stock.upper() not in sp_df['Symbol'].values:
             raise NameError("Error: '" + stock + "' is NOT AVAILABLE")
@@ -37,6 +38,7 @@ def get_stock():
 def get_stock_info(symbol):
     global sp_df
 
+    symbol = symbol.lower()
     # Get stock company information
     stock_info = sp_df[sp_df.Symbol == symbol.upper()]
     company_name = stock_info['Name'].iloc[0]
@@ -94,6 +96,7 @@ def GetSP500_List():
 
 
 def GetYahooStockData(symbol):
+    symbol = symbol.lower()
     # create filename and read it
     fname = directory + symbol + '.json'
     with open(fname, 'r') as rfile:
@@ -103,6 +106,7 @@ def GetYahooStockData(symbol):
 
 
 def GetStockDataFrame(symbol):
+    symbol = symbol.lower()
     data = GetYahooStockData(symbol)
     df = pd.DataFrame()
 
@@ -119,6 +123,7 @@ def GetStockDataFrame(symbol):
 
 
 def GetFund_Dict(symbol):
+    symbol = symbol.lower()
     set_stock(symbol)
     global column_map
     sources = ['income-statement', 'cash-flow-statement', 'balance-sheet-statement',
@@ -194,6 +199,7 @@ def skip_every_n(df, n):
 
 
 def plot_basic_charts(symbol, price_df = {}):
+    symbol = symbol.lower()
     set_stock(symbol)
 
     if len(price_df)==0:
@@ -240,7 +246,7 @@ def plot_basic_charts(symbol, price_df = {}):
         mean_name = str(ma) + ' days MA'
         ma_names.append(mean_name)
         tmp_df = pd.DataFrame(
-            {'Timestamps': price_df.index.to_list(), mean_name: price_df['AdjClose'].rolling(window=ma).mean()})
+            {'Timestamps': price_df.index.tolist(), mean_name: price_df['AdjClose'].rolling(window=ma).mean()})
         price_df = pd.merge(price_df, tmp_df, left_index=True, right_index=True)
 
     fig = plt.figure(figsize=(15, 6))
@@ -372,20 +378,20 @@ def plot_basic_charts(symbol, price_df = {}):
         else:
             continue
 
-    plots_df = pd.DataFrame(dic).set_index('Timestamps').dropna()
+    plots_df = pd.DataFrame(dic).dropna()
 
-    plots_df.plot(ax=axs[1], y=['EPS'], grid=True, lw=4)
-    plots_df.plot(ax=axs[1], y=['FCF/Share'], grid=True, lw=4)
+    plots_df.plot(ax=axs[1],x='Timestamps', y=['EPS'], grid=True, lw=4)
+    plots_df.plot(ax=axs[1],x='Timestamps', y=['FCF/Share'], grid=True, lw=4)
     axs[1].set_ylabel('Earning && FCF/Share')
-    plots_df.plot(ax=axs[2], y=['P/E'], grid=True, lw=4)
-    plots_df.plot(ax=axs[2], y=['Calc. P/E'], grid=True, lw=4)
+    plots_df.plot(ax=axs[2],x='Timestamps', y=['P/E'], grid=True, lw=4)
+    plots_df.plot(ax=axs[2],x='Timestamps', y=['Calc. P/E'], grid=True, lw=4)
     axs[2].set_ylabel('Price/Earning (P/E)')
 
-    plots_df.plot(ax=axs[3], y=['Revenue'], lw=4)
-    plots_df.plot(ax=axs[3], y=['Earnings before Tax'], lw=4)
-    plots_df.plot(ax=axs[3], y=['Net Income'], lw=4)
-    plots_df.plot(ax=axs[3], y=['Free Cash Flow'], lw=4)
-    plots_df.plot(ax=axs[3], y=['Gross Profit'], grid=True, lw=4)
+    plots_df.plot(ax=axs[3],x='Timestamps', y=['Revenue'], lw=4)
+    plots_df.plot(ax=axs[3],x='Timestamps', y=['Earnings before Tax'], lw=4)
+    plots_df.plot(ax=axs[3],x='Timestamps', y=['Net Income'], lw=4)
+    plots_df.plot(ax=axs[3],x='Timestamps', y=['Free Cash Flow'], lw=4)
+    plots_df.plot(ax=axs[3],x='Timestamps', y=['Gross Profit'], grid=True, lw=4)
 
     axs[3].set_ylabel('Growth')
 
@@ -398,6 +404,7 @@ def plot_basic_charts(symbol, price_df = {}):
 
 
 def TrendsPlot(symbol, price_df = {}):
+    symbol = symbol.lower()
     set_stock(symbol)
     if len(price_df)==0:
         price_df = GetStockDataFrame(get_stock())

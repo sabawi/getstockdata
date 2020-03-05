@@ -13,6 +13,11 @@ xcolumn_name = 'date'
 column_map = {}
 sp_df = ''
 
+
+def print_over(txt):
+    print('\r', end='')
+    print(txt, end='')
+
 def set_stock(s):
     global stock
     global directory

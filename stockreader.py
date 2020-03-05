@@ -26,6 +26,11 @@ logdir = "./logs/"
 logfilename = logdir + "log_"+timestampStr+".txt"
 print('Log file name : '+logfilename)
 
+
+def print_over(txt):
+    print('\r', end='')
+    print(txt, end='')
+
 def logstart():
 	# Make sure the log dir exists, if not create it
     if not os.path.exists(logdir):
@@ -91,6 +96,7 @@ def download_stock_data():
     urlB = '?range=' + data_range + '&interval=1d&indicators=quote&includeTimestamps=true'
 
     for s in stocklist:
+        print_over('-- Processing ... '+s.upper())
         # Create the yahoo finance URL
         url = urlA+s+urlB
         logevent(url)
@@ -124,6 +130,7 @@ def download_stock_fund(Source='STOCKPOP'):
     for s in stocklist:
         time.sleep(2.0)
         s = s.upper()
+        print_over('-- Processing ... '+s)
         stock_count = stock_count + 1
         logevent('Processing '+s +' No.' +str(stock_count))
 

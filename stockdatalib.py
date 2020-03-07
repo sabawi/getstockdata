@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 import datetime as datetime
 import matplotlib.pyplot as plt
+from scipy.signal import argrelextrema
+import scipy.stats as stats
+import math
 
 stock = ''
 directory = ''  # '../getstockdata/data/'
@@ -624,3 +627,168 @@ def key_stat(symbol):
 
     res = pd.DataFrame(dict)
     return res
+
+
+def GetPriceChanges(price_df, periods):
+    if (len(periods) < 1):
+        raise NameError("Error : A list of atl least 1 period must be provided")
+        return
+
+    price_changes = pd.DataFrame(columns=periods + ['Timestamps'])
+    updownlist = []
+
+    for i in periods:
+        price_changes[i] = (price_df['AdjClose'].pct_change(i) * 100).dropna().copy(deep=True)
+
+        updownlist = list()
+        for n in price_changes[i]:
+            if n > 0:
+                updownlist.append(1)
+            elif n < 0:
+                updownlist.append(-1)
+            else:
+                updownlist.append(0)
+
+        price_changes['Directions ' + str(i)] = updownlist
+
+    return price_changes
+
+
+def PlotPriceChanges(price_df, periods):
+    if (len(periods) < 1):
+        raise NameError("Error : A list of atl least 1 period must be provided")
+        return
+
+    price_changes = GetPriceChanges(price_df, periods)
+
+    # Start plotting
+    fig, ax = plt.subplots(len(periods) + 1, 1, figsize=(15, 20), sharex=True, gridspec_kw={'hspace': 0, 'wspace': 0})
+    fig.suptitle("Price Changes Chart", fontsize=30)
+    for axx in ax:
+        axx.xaxis.grid(which='minor')
+        axx.yaxis.grid(which='minor')
+        axx.grid(True)
+
+        _ = plt.xticks(rotation=45)
+        axx.minorticks_on()
+
+        axx.grid(which='minor', linestyle='-', linewidth='0.5', color='black')
+        axx.xaxis.grid(which='major', linestyle='-', linewidth='1.0', color='black')
+        axx.yaxis.grid(which='major', linestyle='-', linewidth='1.0', color='black')
+
+    price_df['AdjClose'].plot(ax=ax[0])
+    ax[0].set_ylabel('Stock Price')
+
+    k = 1
+    for i in periods:
+        price_changes[i].plot(ax=ax[k], color='green', lw=2.0)
+        ax[k].set_ylabel(str(i) + ' Day Change')
+        k = k + 1
+
+
+def PlotPriceChangesKDE(price_df, periods):
+
+    if (len(periods) < 1):
+        raise NameError("Error : A list of atl least 1 period must be provided")
+        return
+
+    price_changes = GetPriceChanges(price_df, periods)
+
+    # Start plotting
+    rows = len(periods)
+    cols = 1
+    fig, ax = plt.subplots(rows, cols, figsize=(10, 15), sharex=True, gridspec_kw={'hspace': 0, 'wspace': 0})
+    ax[0].set_ylabel('Probability Density')
+
+    fig.suptitle("Price Changes KDE & Normal Dist.", fontsize=30)
+
+    k = 0
+    for i in periods:
+        price_changes_inperiod = price_changes[i].dropna()
+        test_df = pd.DataFrame({str(i) + ' Day KDE Distribution': price_changes_inperiod.tolist()})
+        if rows == 1 and cols == 1:
+            ax.axvline(x=price_changes_inperiod.mean(), linewidth=2, color='r')
+            test_df.plot(ax=ax, kind='kde', color='black', lw=2, grid=True)
+        else:
+            ax[k].axvline(x=price_changes_inperiod.mean(), linewidth=2, color='r')
+            test_df.plot(ax=ax[k], kind='kde', color='black', lw=2, grid=True)
+
+        k = k + 1
+
+    ######################################################################
+    stats_list = []
+    kn = 0
+
+    for i in periods:
+        price_changes_inperiod = price_changes[i].dropna()
+        d = price_changes_inperiod.describe()
+        dictt = {'index': i,
+                 'Record Count': d['count'],
+                 'Mean of Price Change': price_changes_inperiod.mean(),
+                 'Std. Dev of Price Change': price_changes_inperiod.std(),
+                 'Var of Price Change': price_changes_inperiod.var(),
+                 'Max. Price Rise': d['max'],
+                 'Max Price Drop': d['min']}
+        stats_list.append(dictt)
+
+        mean = price_changes_inperiod.mean()
+        std = price_changes_inperiod.std()
+        xn = np.linspace(d['min'], d['max'], 100)
+        yn = stats.norm.pdf(xn, mean, std)
+
+        if rows == 1 and cols == 1:
+            ax.plot(xn, yn, color='green', label=str(i) + ' Normal Distribution')
+            ax.legend()
+        else:
+            ax[kn].plot(xn, yn, color='green', label=str(i) + ' Normal Distribution')
+            ax[kn].legend()
+
+        kn = kn + 1
+
+    stats_out = pd.DataFrame(stats_list)
+    stats_out.set_index('index', inplace=True)
+    return price_changes, stats_out
+
+
+def PlotBuySellEnvelope(price_df, period):
+    price_changes = sd.GetPriceChanges(price_df, [period])
+
+    price_changes['data'] = price_changes[period].dropna().copy(deep=True)
+
+    # Set the period
+    n = period  # number of points to be checked before and after
+
+    # Find local peaks
+    price_changes['min'] = price_changes.iloc[argrelextrema(price_changes.data.values,
+                                                            np.less_equal, order=n)[0]]['data']
+    price_changes['max'] = price_changes.iloc[argrelextrema(price_changes.data.values,
+                                                            np.greater_equal, order=n)[0]]['data']
+
+    # Plot results
+    fig, axs = plt.subplots(2, 1, figsize=(15, 12), sharex=True, gridspec_kw={'hspace': 0, 'wspace': 0})
+    fig.suptitle("Buy-Sell Envelope Chart", fontsize=30)
+
+    price_df['AdjClose'].plot(ax=axs[0]).grid(True)
+    axs[0].set_ylabel('Stock Price')
+
+    # Plot the lower and upper envelop
+    price_minima = pd.DataFrame(price_changes['min'].dropna()).copy(deep=True)
+    plt.plot(price_minima, c='green', label='Buy Line', lw=2.0)
+
+    price_maxima = pd.DataFrame(price_changes['max'].dropna()).copy(deep=True)
+    plt.plot(price_maxima, c='red', label='Sell Line')
+    ###############################
+
+    plt.scatter(price_changes.index, price_changes['min'], color='green')
+    plt.scatter(price_changes.index, price_changes['max'], color='red')
+    plt.plot(price_changes.index, price_changes['data'], c='gray')
+    plt.grid(which='major', axis='both')
+    axs[1].set_ylabel(str(n) + ' Day Direction Chart')
+    axs[1].legend()
+
+    for ax in axs:
+        ax.label_outer()
+        ax.minorticks_on()
+        ax.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
+
+    plt.show()

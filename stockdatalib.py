@@ -1,3 +1,8 @@
+
+"""
+Auth : Al Sabawi
+Date :March, 2020
+"""
 import os
 import json
 import pandas as pd
@@ -585,7 +590,7 @@ def TrendsPlot(symbol, price_df = {}):
 def quote(symbol):
     set_stock(symbol)
 
-    price_df = GetStockDataFrame(stock)
+    price_df = GetStockDataFrame(symbol)
     date = price_df.index[-1]
     price = np.round(price_df['AdjClose'].iloc[-1],2)
     vol = price_df['Volume'].iloc[-1]
@@ -629,7 +634,7 @@ def key_stat(symbol):
     return res
 
 
-def GetPriceChanges(price_df, periods):
+def GetPriceChangesPercent(price_df, periods):
     if (len(periods) < 1):
         raise NameError("Error : A list of atl least 1 period must be provided")
         return
@@ -654,12 +659,12 @@ def GetPriceChanges(price_df, periods):
     return price_changes
 
 
-def PlotPriceChanges(price_df, periods):
+def PlotPriceChangesPercent(price_df, periods):
     if (len(periods) < 1):
         raise NameError("Error : A list of atl least 1 period must be provided")
         return
 
-    price_changes = GetPriceChanges(price_df, periods)
+    price_changes = GetPriceChangesPercent(price_df, periods)
 
     # Start plotting
     fig, ax = plt.subplots(len(periods) + 1, 1, figsize=(15, 20), sharex=True, gridspec_kw={'hspace': 0, 'wspace': 0})
@@ -692,7 +697,7 @@ def PlotPriceChangesKDE(price_df, periods):
         raise NameError("Error : A list of atl least 1 period must be provided")
         return
 
-    price_changes = GetPriceChanges(price_df, periods)
+    price_changes = GetPriceChangesPercent(price_df, periods)
 
     # Start plotting
     rows = len(periods)
@@ -724,11 +729,11 @@ def PlotPriceChangesKDE(price_df, periods):
         d = price_changes_inperiod.describe()
         dictt = {'index': i,
                  'Record Count': d['count'],
-                 'Mean of Price Change': price_changes_inperiod.mean(),
-                 'Std. Dev of Price Change': price_changes_inperiod.std(),
-                 'Var of Price Change': price_changes_inperiod.var(),
-                 'Max. Price Rise': d['max'],
-                 'Max Price Drop': d['min']}
+                 'Mean of % Price Change': price_changes_inperiod.mean(),
+                 'Std. Dev of % Price Change': price_changes_inperiod.std(),
+                 'Var of % Price Change': price_changes_inperiod.var(),
+                 'Max. % Price Rise': d['max'],
+                 'Max % Price Drop': d['min']}
         stats_list.append(dictt)
 
         mean = price_changes_inperiod.mean()
@@ -751,7 +756,7 @@ def PlotPriceChangesKDE(price_df, periods):
 
 
 def PlotBuySellEnvelope(price_df, period):
-    price_changes = sd.GetPriceChanges(price_df, [period])
+    price_changes = GetPriceChangesPercent(price_df, [period])
 
     price_changes['data'] = price_changes[period].dropna().copy(deep=True)
 

@@ -19,7 +19,7 @@ from urllib.request import urlopen
 from collections import defaultdict
 
 stock = ''
-directory = ''  # '../getstockdata/data/'
+directory = './data/'  # '../getstockdata/data/'
 sp_cons_csv = ''
 fund_filename = ''
 xcolumn_name = 'date'
@@ -44,6 +44,7 @@ def set_stock(s):
         raise NameError("Error: 'data directory' is NOT set")
         print('ERROR')
     else:
+        set_data_directory(directory)
         sp_df = pd.read_csv(sp_cons_csv)
         if stock.upper() not in sp_df['Symbol'].values:
             raise NameError("Error: '" + stock + "' is NOT AVAILABLE")
@@ -215,6 +216,8 @@ def skip_every_n(df, n):
     df2 = df.iloc[::n, :]
     return df2
 
+def PlotBasicCharts(symbol, price_df = {}):
+    return plot_basic_charts(symbol, price_df)
 
 def plot_basic_charts(symbol, price_df = {}):
     symbol = symbol.lower()
@@ -342,7 +345,7 @@ def plot_basic_charts(symbol, price_df = {}):
     ## Create Plot
     fig, axs = plt.subplots(4, figsize=(15, 25), sharex=True,
                             gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [2, 1, 1, 1]})
-    fig.suptitle(stock_title, fontsize=30)
+    #fig.suptitle(stock_title, fontsize=30)
 
     y_list = ['Low', 'AdjClose', 'High']
     for ma in ma_names:
@@ -418,6 +421,8 @@ def plot_basic_charts(symbol, price_df = {}):
         ax.label_outer()
         ax.minorticks_on()
         ax.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
+
+    plt.show()
 
     return linear_trends_df
 
@@ -516,9 +521,9 @@ def TrendsPlot(symbol, price_df = {}):
     # , squeeze=True, gridspec_kw = {'height_ratios':[1,2,5,2,3]}
     fig, axs = plt.subplots(8, figsize=(15, 25), sharex=True,
                             gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [3, 3, 3, 3, 2, 2, 2, 2]})
-    fig.suptitle(stock_title, fontsize=30)
+    #fig.suptitle(stock_title, fontsize=30)
 
-    price_data_df.plot(ax=axs[0], y=['Low', 'AdjClose', 'High', '5 Yr Trend'], grid=True)
+    price_data_df.plot(ax=axs[0], y=['Low', 'AdjClose', 'High', '5 Yr Trend'], grid=True, title=stock_title,)
     price_data_df.plot(ax=axs[1], y=['Low', 'AdjClose', 'High', '2 Yr Trend'], grid=True)
     price_data_df.plot(ax=axs[2], y=['Low', 'AdjClose', 'High', '1 Yr Trend'], grid=True)
     price_data_df.plot(ax=axs[3], y=['Low', 'AdjClose', 'High', '6 Month Trend'], grid=True)
@@ -589,6 +594,8 @@ def TrendsPlot(symbol, price_df = {}):
                                            str(np.round(max_vol_change[volume_change_percent].values[0], 2)) + '%',
                                            str(np.round(min_vol_change[volume_change_percent].values[0], 2)) + '%']})
     maxtable_df = maxtable_df.set_index('Change Type')
+
+    plt.show()
 
     return price_data_df, maxtable_df
 
@@ -695,6 +702,7 @@ def PlotPriceChangesPercent(price_df, periods):
         ax[k].set_ylabel(str(i) + ' Day Change')
         k = k + 1
 
+    plt.show()
 
 def PlotPriceChangesKDE(price_df, periods):
 
@@ -757,6 +765,7 @@ def PlotPriceChangesKDE(price_df, periods):
 
     stats_out = pd.DataFrame(stats_list)
     stats_out.set_index('index', inplace=True)
+    plt.show()
     return price_changes, stats_out
 
 
@@ -806,6 +815,12 @@ def PlotBuySellEnvelope(price_df, period):
 
 
 def update_stock(symbol):
+    global directory
+
+    if (directory == ''):
+        raise NameError("Error: 'data directory' is NOT set")
+        return
+
     # make 2 parts of the yahoo URL so we can insert the symbol in between them
     data_range = '5y'  # 2y to 5y
     urlA = 'https://query1.finance.yahoo.com/v7/finance/chart/'

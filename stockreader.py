@@ -317,13 +317,34 @@ def download_sp_constituents():
     with open('./data/sp_const.csv', 'w') as csvfile:
         csvfile.write(data)
 
+def download_stocks_list():
+    url = "https://financialmodelingprep.com/api/v3/company/stock/list"
+    try:
+        data = request.urlopen(url).read().decode('utf-8')
+    except:
+        print("Error: Downloading General Symbols list from " + url)
+        return
+
+    os.makedirs("./data", exist_ok=True)
+
+    # write data into a json file
+    try:
+        with open('./data/stocks_list.json', 'w') as f:
+            json.dump(data, f, indent=4)
+    except:
+        logevent("ERROR: Opening/Writing file './data/stocks_list.json'", 'error')
+
+
 
 def main():
     logstart()
     print("Wait! Download in progress ... this may take a while")
     # uncomment the line below when done debugging
-    print("-- Downloading stocks list!")
+    print("-- Downloading stocks S&P list!")
     download_sp_constituents()
+
+    print("-- Downloading general stocks list!")
+    download_stocks_list()
 
     # Get S&P 500 Constituents, their Sectors, and Industry
     get_sp_constituents()

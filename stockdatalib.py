@@ -12,6 +12,11 @@ import matplotlib.pyplot as plt
 from scipy.signal import argrelextrema
 import scipy.stats as stats
 import math
+import requests
+import urllib
+from urllib import request as url_request
+from urllib.request import urlopen
+from collections import defaultdict
 
 stock = ''
 directory = ''  # '../getstockdata/data/'
@@ -203,7 +208,7 @@ def CleanUp_DataFrame(main_df):
 
 
 def DatesRange(df, start, end=datetime.datetime.today()):
-    return df[(df.index >= start) & (df.index <= end)].copy()
+    return df.loc[(df.index >= start) & (df.index <= end)].copy()
 
 
 def skip_every_n(df, n):
@@ -797,3 +802,172 @@ def PlotBuySellEnvelope(price_df, period):
         ax.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
 
     plt.show()
+
+
+
+def update_stock(symbol):
+    # make 2 parts of the yahoo URL so we can insert the symbol in between them
+    data_range = '5y'  # 2y to 5y
+    urlA = 'https://query1.finance.yahoo.com/v7/finance/chart/'
+    urlB = '?range=' + data_range + '&interval=1d&indicators=quote&includeTimestamps=true'
+
+    s = symbol
+
+    # Create the yahoo finance URL
+    url = urlA + s + urlB
+    print("Downloading EOD data for "+s+" from "+url)
+
+    # Request the data
+    try:
+        stockdata = requests.get(url)
+        data = stockdata.json()
+    except  urllib.error.URLError as e:
+        print('ERROR ' + s + ' ' + e.reason, 'error')
+        return
+    except urllib.error.HTTPError as e:
+        print('ERROR ' + s + ' ' + e.reason, 'error')
+        return
+
+    # write data into a json filw
+    try:
+        with open(directory + s + '.json', 'w') as f:
+            json.dump(data, f, indent=4)
+    except:
+        print("ERROR: Opening/Writing file ", directory + s + '.json', 'error')
+
+
+    ### Down load fundamentals
+    Source = 'FMP'
+    print("Downloading " + s + " stock' fundementals FROM " + Source.upper())
+    url = 'UN-INITIALIZED'
+
+    if Source.upper() == 'STOCKPOP':
+        replace_symb = {'AAL': 'AMR', 'ANDV': 'TSO', 'ANTM': 'WLP', 'AON': 'AOC', 'ARNC': 'AA', 'ATGE': 'DV',
+                        'BEAM': 'FO'}
+        exclude_symbols = ['GOOGL']
+        if s in replace_symb.keys():
+            print(s + ' is being replaced with ' + replace_symb[s])
+            s = replace_symb[s]
+
+        if s in exclude_symbols:
+            print("Skipping " + s)
+            return
+        url = 'http://www.stockpup.com/data/' + s + '_quarterly_financial_data.csv'
+    elif Source.upper() == 'FINANCIALMODELINGPREP' or 'FMP':
+        replace_symb = {}
+        exclude_symbols = ['SCG']
+        if s in replace_symb.keys():
+            print(s + ' is being replaced with ' + replace_symb[s])
+            s = replace_symb[s]
+
+        if s in exclude_symbols:
+            print("Skipping " + s)
+            return
+
+        url_list = {}
+        url_list[
+            'income-statement'] = 'https://financialmodelingprep.com/api/v3/financials/income-statement/' + s + '?datatype=csv&period=quarter'
+        url_list[
+            'cash-flow-statement'] = 'https://financialmodelingprep.com/api/v3/financials/cash-flow-statement/' + s + '?datatype=csv&period=quarter'
+        url_list[
+            'balance-sheet-statement'] = 'https://financialmodelingprep.com/api/v3/financials/balance-sheet-statement/' + s + '?datatype=csv&period=quarter'
+        url_list[
+            'enterprise-value'] = 'https://financialmodelingprep.com/api/v3/enterprise-value/' + s + '?period=quarter'
+        url_list[
+            'company-key-metrics'] = 'https://financialmodelingprep.com/api/v3/company-key-metrics/' + s + '?datatype=csv&period=quarter'
+        url_list[
+            'financial-ratios'] = 'https://financialmodelingprep.com/api/v3/financial-ratios/' + s + '?datatype=csv&period=quarter'
+
+    else:
+        # print('*** Error: Invalid data source URL', url, ' ***')
+        print('ERROR ' + s + ': ' + '*** Error: Invalid data source URL', url, ' ***')
+        return
+
+    try:
+        if Source.upper() == 'STOCKPOP':
+            print(url)
+            s = s.lower()
+            csvfilename = './data/' + s + '_fund.csv'
+            fund_data = url_request.urlopen(url).read().decode('utf-8')
+            with open(csvfilename, 'w') as csvfile:
+                csvfile.write(fund_data)
+
+        elif Source.upper() == 'FINANCIALMODELINGPREP' or 'FMP':
+            s = s.lower()
+            for key in url_list:
+                url = url_list[key]
+                print(url)
+                response = urlopen(url)
+                # print(response.headers['content-type'])
+                if response.headers['content-type'].lower() == 'text/csv;charset=utf-8' or response.headers[
+                    'Content-Type'].lower() == 'text/csv;charset=utf-8':
+                    raw_data = response.read().decode("utf-8")
+
+                    csvfilename = directory + 'Temp_' + s + '_' + key + '.csv'
+                    with open(csvfilename, 'w') as csvfile:
+                        csvfile.write(raw_data)
+
+                    csvfilename_out = directory + s + '_' + key + '.csv'
+                    pd.read_csv(csvfilename, header=None).T.to_csv(csvfilename_out, header=False, index=False)
+                    os.remove(csvfilename)
+                elif response.headers['content-type'].lower() == 'application/json;charset=utf-8' or \
+                        response.headers['Content-Type'].lower() == 'application/json;charset=utf-8':
+                    raw_data = requests.get(url)
+                    data = raw_data.json()
+
+                    if len(data) == 0:
+                        # print(s + ' data.dict Empty ERROR -- Skipped')
+                        print(s + ' data.dict Empty ERROR -- Skipped')
+                        return
+                    elif 'Error' in data.keys():
+                        # print(s + ' data.dict ', data['Error'], ' ERROR -- Skipped')
+                        print(s + ' data.dict ' + str(data['Error']) + ' ERROR -- Skipped')
+                        return
+
+                    l = list(data.keys())
+                    keyl = l[1]
+
+                    d = defaultdict(list)
+                    if not isinstance(data, dict) or keyl not in data.keys():
+                        print('data.dict ERROR -- File "' + key + '" Skipped')
+                        return
+                    if not isinstance(data[keyl], dict):
+                        if len(data[keyl]) > 0 and not isinstance(data[keyl][0], dict):
+                            print(keyl, ' : data[key] ERROR -- File "' + key + '" Skipped')
+                            return
+                        else:
+                            # Drill deep into the JSON structure to find data
+                            tmp = defaultdict(list)
+                            for i in range(len(data[keyl])):
+                                for k in data[keyl][i]:
+                                    if not (isinstance(data[keyl][i][k], dict)):
+                                        tmp[k].append(data[keyl][i][k])
+                                    else:
+                                        for k2 in data[keyl][i][k]:
+                                            if isinstance(data[keyl][i][k][k2], dict):
+                                                for k3 in data[keyl][i][k][k2]:
+                                                    tmp[str(k) + '_' + str(k2) + '-' + str(k3)].append(
+                                                        data[keyl][i][k][j][k2][k3])
+                                            else:
+                                                tmp[str(k) + '_' + str(k2)].append(data[keyl][i][k][k2])
+
+                        d = tmp
+
+                    df = pd.DataFrame(d)
+                    # df = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in d.items() ]))
+
+                    if df.empty:
+                        print('df.empty ERROR - File "' + key + '" Skipped')
+                        return
+
+                    df.set_index('date', inplace=True)
+
+                    csvfilename_out = directory + s + '_' + key + '.csv'
+                    df.to_csv(csvfilename_out)
+
+    except  urllib.error.URLError as e:
+        print('ERROR ' + s + ' ' + e.reason, 'error')
+        return
+    except urllib.error.HTTPError as e:
+        print('ERROR ' + s + ' ' + e.reason, 'error')
+        return

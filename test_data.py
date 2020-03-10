@@ -45,7 +45,7 @@ price_df = sd.GetStockDataFrame('fb')
 # Index the data frame by 'Timestamps' column
 
 # Load the stock fundamental data
-keys, column_map, main_df_org = sd.GetFund_Dict('fb')
+keys, column_map, main_df_org = sd.GetFund_Dict('csco')
 
 
 # # Searching for data by column name
@@ -111,6 +111,8 @@ sd.plot_basic_charts('nflx')
 # # Plot a single key stat item
 main_df['Net Income'].plot(figsize=(12,8), title = sd.get_stock().upper()).grid()
 
+sd.update_stock('c')
+
 price_df = sd.GetStockDataFrame('c')
 price_df = sd.DatesRange(price_df, '2017-01-01','2018-08-01')
 print(price_df)
@@ -123,3 +125,10 @@ price_data_df.describe()
 f,s = sd.FindColumn('cash flow')
 print(f)
 
+sd.PlotBuySellEnvelope(price_df,5)
+
+sd.PlotPriceChangesKDE(price_df,[5,10,40])
+
+sd.PlotPriceChangesPercent(price_df,[5,10,40])
+
+sd.TrendsPlot('msft')

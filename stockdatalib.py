@@ -135,7 +135,7 @@ def GetStockDataFrame(symbol):
     df["Low"] = data["chart"]["result"][0]["indicators"]["quote"][0]["low"]
     df["AdjClose"] = data["chart"]["result"][0]["indicators"]["adjclose"][0]["adjclose"]
     df['Volume'] = data["chart"]["result"][0]["indicators"]["quote"][0]["volume"]
-    df['Volume'] = df['Volume'].astype(int)
+    df['Volume'] = df['Volume'][0].astype(int)
 
     df.set_index('Timestamps', inplace=True)
     return df

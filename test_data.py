@@ -28,6 +28,10 @@ linear_trends = sd.PlotBasicCharts('aapl',price_df)
 # Linear Regression Equations returned by the plot call
 linear_trends
 
+
+sd.UpdateStockData('c')
+
+
 # Get last price quote
 sd.quote('csco')
 
@@ -110,8 +114,6 @@ sd.PlotBasicCharts('nflx')
 
 # # Plot a single key stat item
 main_df['Net Income'].plot(figsize=(12,8), title = sd.get_stock().upper()).grid()
-
-sd.UpdateStockData('c')
 
 price_df = sd.GetStockDataFrame('c')
 price_df = sd.DatesRange(price_df, '2017-01-01','2018-08-01')

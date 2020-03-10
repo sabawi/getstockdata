@@ -831,17 +831,18 @@ def UpdateStockData(symbol):
 
     # Request the data
     try:
+        print("Requesting data .. ")
         stockdata = requests.get(url)
+        #data = url_request.urlopen(url).read().decode('utf-8')
+        print("Write to JSON file ")
         data = stockdata.json()
     except  urllib.error.URLError as e:
-        print('ERROR ' + s + ' ' + e.reason, 'error')
-        return
-    except urllib.error.HTTPError as e:
         print('ERROR ' + s + ' ' + e.reason, 'error')
         return
 
     # write data into a json filw
     try:
+        print("Open and write to file "+ directory + s + '.json')
         with open(directory + s + '.json', 'w') as f:
             json.dump(data, f, indent=4)
     except:

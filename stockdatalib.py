@@ -135,7 +135,7 @@ def GetStockDataFrame(symbol):
     df["Low"] = data["chart"]["result"][0]["indicators"]["quote"][0]["low"]
     df["AdjClose"] = data["chart"]["result"][0]["indicators"]["adjclose"][0]["adjclose"]
     df['Volume'] = data["chart"]["result"][0]["indicators"]["quote"][0]["volume"]
-    df['Volume'] = df['Volume'][0].astype(int)
+    df['Volume'] = df['Volume']
 
     df.set_index('Timestamps', inplace=True)
     return df
@@ -217,9 +217,6 @@ def skip_every_n(df, n):
     return df2
 
 def PlotBasicCharts(symbol, price_df = {}):
-    return plot_basic_charts(symbol, price_df)
-
-def plot_basic_charts(symbol, price_df = {}):
     symbol = symbol.lower()
     set_stock(symbol)
 
@@ -427,7 +424,7 @@ def plot_basic_charts(symbol, price_df = {}):
     return linear_trends_df
 
 
-def TrendsPlot(symbol, price_df = {}):
+def PlotTrends(symbol, price_df = {}):
     symbol = symbol.lower()
     set_stock(symbol)
     if len(price_df)==0:
@@ -814,7 +811,7 @@ def PlotBuySellEnvelope(price_df, period):
 
 
 
-def update_stock(symbol):
+def UpdateStockData(symbol):
     global directory
 
     if (directory == ''):

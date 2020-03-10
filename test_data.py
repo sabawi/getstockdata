@@ -23,7 +23,7 @@ company_sector = stock_info['sector'][0]
 price_df = sd.GetStockDataFrame('aapl')
 price_df = sd.DatesRange(price_df, '2017-01-01','2018-08-01')
 print(price_df)
-linear_trends = sd.plot_basic_charts('aapl',price_df)
+linear_trends = sd.PlotBasicCharts('aapl',price_df)
 
 # Linear Regression Equations returned by the plot call
 linear_trends
@@ -35,7 +35,7 @@ sd.quote('csco')
 sd.key_stat('ibm')
 
 # Plot another stock
-sd.plot_basic_charts('amzn')
+sd.PlotBasicCharts('amzn')
 
 # # The data load functions
 
@@ -105,18 +105,18 @@ sd.DatesRange(main_df, '2016-01-01', '2019-06-01').plot(figsize=(12,8),
                                                                      title=sd.get_stock().upper()+' From 2016-01-01 TO 2019-06-01')
 
 # Plot price chart with trend lines, EPS, and PE ratios
-sd.plot_basic_charts('nflx')
+sd.PlotBasicCharts('nflx')
 
 
 # # Plot a single key stat item
 main_df['Net Income'].plot(figsize=(12,8), title = sd.get_stock().upper()).grid()
 
-sd.update_stock('c')
+sd.UpdateStockData('c')
 
 price_df = sd.GetStockDataFrame('c')
 price_df = sd.DatesRange(price_df, '2017-01-01','2018-08-01')
 print(price_df)
-price_data_df, maxtable_df = sd.TrendsPlot('c',price_df)
+price_data_df, maxtable_df = sd.PlotTrends('c',price_df)
 
 print(maxtable_df)
 
@@ -131,4 +131,4 @@ sd.PlotPriceChangesKDE(price_df,[5,10,40])
 
 sd.PlotPriceChangesPercent(price_df,[5,10,40])
 
-sd.TrendsPlot('msft')
+sd.PlotTrends('msft')

@@ -139,7 +139,11 @@ def GetStockDataFrame(symbol):
     symbol = symbol.lower()
     data = GetYahooStockData(symbol)
     df = pd.DataFrame()
-
+    if(data['chart']['result'] == None):
+        return df
+    if "timestamp" not in data["chart"]["result"][0]:
+        return df
+    
     df['Timestamps'] = pd.to_datetime(data["chart"]["result"][0]["timestamp"], unit='s')
     df["Open"] = data["chart"]["result"][0]["indicators"]["quote"][0]["open"]
     df["High"] = data["chart"]["result"][0]["indicators"]["quote"][0]["high"]
@@ -616,6 +620,9 @@ def quote(symbol):
     set_stock(symbol)
 
     price_df = GetStockDataFrame(symbol)
+    if(price_df.empty):
+        return price_df
+    
     date = price_df.index[-1]
     price = np.round(price_df['AdjClose'].iloc[-1],2)
     vol = price_df['Volume'].iloc[-1]
@@ -798,6 +805,12 @@ def GetBuySellEnvelope(s,price_df, period):
     low_df = price_changes['min'].dropna()
     hi_df = price_changes['max'].dropna()
     
+    #print(low_df.shape[0])
+    
+    action_df = ''
+    if(low_df.shape[0] == 0 or hi_df.shape[0]==0):
+        return False, price_df['AdjClose'], low_df, hi_df, action_df
+    
     date_last_buy = low_df.index[-1]
     date_last_sell = hi_df.index[-1]
         
@@ -810,22 +823,35 @@ def GetBuySellEnvelope(s,price_df, period):
     range_percent = ave_max_delta - ave_min_delta
     
     q = quote(s)
+    margin = 0.10 * (range_percent/100) # 10% of the range
     
     buy_str = sell_str = buy_recom = sell_recom = ''
     buy_recommendation =  sell_recommendation = 'no' 
     if date_last_buy > date_last_sell:
         range_buy  = round( price_last_buy,2)
-        range_sell = round( price_last_buy+ave_max_delta,2)
-        buy_str = str(round( price_last_buy,2))+' - '+ str(round(price_last_buy+ave_max_delta,2))
+        
+        range_buy_plus_margin = round(range_buy+ (range_buy * margin),2)
+        
+        upper_limit = round( price_last_buy + (price_last_buy * (ave_max_delta/100) ) , 2)
+        range_sell  = round( price_last_sell , 2)
+        
+        buy_str = str(round( price_last_buy,2))+' - '+ str( range_sell ) 
         buy_recom = "Buy@"+str(range_buy)+' - '+'Sell@'+str(range_sell)
-        if q.close[0] <= range_buy+(range_buy**.30*range_percent):
+        
+        if q.close[0] <= range_buy_plus_margin and range_buy_plus_margin < range_sell :
             buy_recommendation = 'buy'
     else:
         range_sell  = round( price_last_sell,2)
-        range_buy = round( price_last_sell+ave_min_delta,2)
-        sell_str = str(round( price_last_sell,2)) +' - '+ str(round(price_last_sell+ave_min_delta,2))
+        
+        range_sell_minus_margin = round(range_sell - (range_sell * margin), 2)
+        
+        lower_limit = round( price_last_sell - (price_last_sell * (ave_min_delta/100) ), 2)
+        
+        range_buy = round( price_last_buy ,2)
+        
+        sell_str =  str( range_sell ) +' - '+ str(round( price_last_buy,2))
         sell_recom = "Sell@"+str(range_sell)+' - '+'Buy@'+str(range_buy)
-        if q.close[0] >= range_sell-(range_sell*0.30*range_percent):
+        if q.close[0] >= range_sell_minus_margin and range_sell_minus_margin > range_buy :
             sell_recommendation = 'sell'        
 
     range_buy  = round( price_last_buy+ave_min_delta,2)
@@ -837,7 +863,7 @@ def GetBuySellEnvelope(s,price_df, period):
     
     action_df = pd.DataFrame(dict)
     
-    return price_df['AdjClose'], low_df, hi_df, action_df  
+    return True, price_df['AdjClose'], low_df, hi_df, action_df  
     
 
 def PlotBuySellEnvelope(price_df, period):

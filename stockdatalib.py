@@ -20,7 +20,7 @@ from collections import defaultdict
 
 stock = ''
 directory = './data/'  # '../getstockdata/data/'
-sp_cons_csv = ''
+stocks_list_csv = ''
 fund_filename = ''
 xcolumn_name = 'date'
 column_map = {}
@@ -34,7 +34,7 @@ def print_over(txt):
 def set_stock(s):
     global stock
     global directory
-    global sp_cons_csv
+    global stocks_list_csv
     global fund_filename
     global sp_df
 
@@ -45,7 +45,7 @@ def set_stock(s):
         print('ERROR')
     else:
         set_data_directory(directory)
-        sp_df = pd.read_csv(sp_cons_csv)
+        sp_df = pd.read_csv(stocks_list_csv)
         if stock.upper() not in sp_df['Symbol'].values:
             raise NameError("Error: '" + stock + "' is NOT AVAILABLE")
         fund_filename = directory + stock + '_fund.csv'
@@ -64,11 +64,21 @@ def get_stock_info(symbol):
     company_sector = stock_info['Sector'].iloc[0]
     return {'stock' : [stock], 'name': [company_name], 'sector':[company_sector]}
 
+def set_stocks_list_filename(filename):
+    global stocks_list_csv
+    stocks_list_csv = directory + filename
+
 def set_data_directory(datadir):
     global directory
-    global sp_cons_csv
+    global stocks_list_csv
+#    if stocks_list_csv == '':
+#        print("Error: stocks list file name is not set. Use set_stocks_list_filename(filename) to set it.")
+#        return
+    
     directory = datadir
-    sp_cons_csv = directory + 'sp_const.csv'
+    #stocks_list_csv = directory + stocks_list_csv
+    #print(stocks_list_csv)
+
 
 def parser(x):
     return datetime.datetime.strptime(x, "%Y-%m-%d")
@@ -100,15 +110,16 @@ def time_series_trendline(datetime_axis, values):
     plt.show()
 
 
-def GetSP500_List():
-    global sp_cons_csv
+def GetStocksList():
+    global stocks_list_csv
     sp_df = pd.DataFrame()
+    #print(stocks_list_csv)
     try:
-        sp_df = pd.read_csv(sp_cons_csv)
+        sp_df = pd.read_csv(stocks_list_csv)
         sp_df.sort_values('Symbol', ascending=True, inplace=True)
 
     except:
-        print("Cannot open file", sp_cons_csv)
+        print("Cannot open file", stocks_list_csv)
 
     # returns count_row, count_col, df
     return sp_df.shape[0], sp_df.shape[1], sp_df
@@ -425,13 +436,14 @@ def PlotBasicCharts(symbol, price_df = {}):
 
 
 def PlotTrends(symbol, price_df = {}):
+    trend_fn_dict = {}
     symbol = symbol.lower()
     set_stock(symbol)
     if len(price_df)==0:
         price_df = GetStockDataFrame(get_stock())
 
     # Get stock company information
-    sp_df = pd.read_csv(sp_cons_csv)
+    sp_df = pd.read_csv(stocks_list_csv)
     stock_info = sp_df[sp_df.Symbol == get_stock().upper()]
     company_name = stock_info['Name'].iloc[0]
     company_sector = stock_info['Sector'].iloc[0]
@@ -457,6 +469,7 @@ def PlotTrends(symbol, price_df = {}):
     x = range(len(price_data_df.index))
     fit = np.polyfit(x, price_data_df['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
+    trend_fn_dict.update({"5y Trend" : fit_fn})
     trend = []
     for k in x:
         t = fit_fn(k)
@@ -470,6 +483,7 @@ def PlotTrends(symbol, price_df = {}):
     x = range(len(price_df_2y.index))
     fit = np.polyfit(x, price_df_2y['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
+    trend_fn_dict.update({"2y Trend" : fit_fn})
     trend = []
     for k in x:
         t = fit_fn(k)
@@ -483,6 +497,7 @@ def PlotTrends(symbol, price_df = {}):
     x = range(len(price_df_1y.index))
     fit = np.polyfit(x, price_df_1y['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
+    trend_fn_dict.update({"1y Trend" : fit_fn})
     trend = []
     for k in x:
         t = fit_fn(k)
@@ -496,6 +511,7 @@ def PlotTrends(symbol, price_df = {}):
     x = range(len(price_df_6m.index))
     fit = np.polyfit(x, price_df_6m['AdjClose'].astype(float), 1)
     fit_fn = np.poly1d(fit)
+    trend_fn_dict.update({"6m Trend" : fit_fn})
     trend = []
     for k in x:
         t = fit_fn(k)
@@ -594,7 +610,7 @@ def PlotTrends(symbol, price_df = {}):
 
     plt.show()
 
-    return price_data_df, maxtable_df
+    return price_data_df, maxtable_df, trend_fn_dict
 
 def quote(symbol):
     set_stock(symbol)
@@ -765,6 +781,64 @@ def PlotPriceChangesKDE(price_df, periods):
     plt.show()
     return price_changes, stats_out
 
+def GetBuySellEnvelope(s,price_df, period):
+    price_changes = GetPriceChangesPercent(price_df, [period])
+    price_changes['data'] = price_changes[period].dropna().copy(deep=True)
+     
+    # Set the period
+    # number of points to be checked before and after
+    n = period 
+
+    # Find local peaks
+    price_changes['min'] = price_changes.iloc[argrelextrema(price_changes.data.values,
+                                                            np.less_equal, order=n)[0]]['data']
+    price_changes['max'] = price_changes.iloc[argrelextrema(price_changes.data.values,
+                                                            np.greater_equal, order=n)[0]]['data'] 
+                                                            
+    low_df = price_changes['min'].dropna()
+    hi_df = price_changes['max'].dropna()
+    
+    date_last_buy = low_df.index[-1]
+    date_last_sell = hi_df.index[-1]
+        
+    price_last_buy = round(price_df['AdjClose'][price_df.index == low_df.index[-1]][0],2)
+    price_last_sell = round(price_df['AdjClose'][price_df.index == hi_df.index[-1]][0],2)
+
+    ave_min_delta = round(low_df.mean(),2)
+    ave_max_delta = round(hi_df.mean(),2)    
+    
+    range_percent = ave_max_delta - ave_min_delta
+    
+    q = quote(s)
+    
+    buy_str = sell_str = buy_recom = sell_recom = ''
+    buy_recommendation =  sell_recommendation = 'no' 
+    if date_last_buy > date_last_sell:
+        range_buy  = round( price_last_buy,2)
+        range_sell = round( price_last_buy+ave_max_delta,2)
+        buy_str = str(round( price_last_buy,2))+' - '+ str(round(price_last_buy+ave_max_delta,2))
+        buy_recom = "Buy@"+str(range_buy)+' - '+'Sell@'+str(range_sell)
+        if q.close[0] <= range_buy+(range_buy**.30*range_percent):
+            buy_recommendation = 'buy'
+    else:
+        range_sell  = round( price_last_sell,2)
+        range_buy = round( price_last_sell+ave_min_delta,2)
+        sell_str = str(round( price_last_sell,2)) +' - '+ str(round(price_last_sell+ave_min_delta,2))
+        sell_recom = "Sell@"+str(range_sell)+' - '+'Buy@'+str(range_buy)
+        if q.close[0] >= range_sell-(range_sell*0.30*range_percent):
+            sell_recommendation = 'sell'        
+
+    range_buy  = round( price_last_buy+ave_min_delta,2)
+    range_sell = round( price_last_buy+ave_max_delta,2)
+    
+    dict = {'Signal':['Buy','Sell'],'Recommendation':[buy_recommendation,sell_recommendation], 'Statement':[buy_recom,sell_recom],
+    'Last Date':[date_last_buy,date_last_sell],
+    'Average % Change':[ave_min_delta,ave_max_delta],'Signal Price':[price_last_buy,price_last_sell],'Range':[buy_str,sell_str]}
+    
+    action_df = pd.DataFrame(dict)
+    
+    return price_df['AdjClose'], low_df, hi_df, action_df  
+    
 
 def PlotBuySellEnvelope(price_df, period):
     price_changes = GetPriceChangesPercent(price_df, [period])
@@ -807,7 +881,18 @@ def PlotBuySellEnvelope(price_df, period):
         ax.minorticks_on()
         ax.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
 
+    #ave_min_delta = price_changes['min'].mean()
+    #ave_max_delta = price_changes['max'].mean()
+    
+    #print("Buy range from ", price_df['AdjClose'].iloc[-1]+ave_min_delta, "to", price_df['AdjClose'].iloc[-1]+ave_max_delta)
+    #price_last_buy = price_df[ price_df['AdjClose'].index == price_changes['min'].index].value
+    #date_last_buy = price_changes['min'].index
+    #print("Last buy signal on ",date_last_buy,"Close price was $",price_last_buy)
     plt.show()
+    
+    return price_df['AdjClose'],price_changes['min'],price_changes['max']
+    
+    
 
 
 
@@ -984,3 +1069,14 @@ def UpdateStockData(symbol):
     except urllib.error.HTTPError as e:
         print('ERROR ' + s + ' ' + e.reason, 'error')
         return
+
+def init_stocks_data(data_dir,stocks_list_file):
+    if data_dir == '':
+        data_dir = './data/'
+    set_data_directory(data_dir)
+    if stocks_list_file == '' :
+        print ("Error: stocks_list_file is not set")
+        return
+    set_stocks_list_filename(stocks_list_file)
+    stock_count, stock_fields, sp_df = GetStocksList()
+    return stock_count, stock_fields, sp_df 

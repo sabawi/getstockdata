@@ -1,6 +1,7 @@
 # /usr/bin/env python3
 """ Auth: Al Sabawi Feb 2020 """
 import os
+import sys
 import json
 import logging
 import time
@@ -69,9 +70,16 @@ def logevent(str, type='info'):
         logging.error(loggername + ' ' + str)
 
 
-def get_sp_constituents():
+def get_sp_constituents(filename):
     global stocklist
-    sp_cons_csv = directory + 'sp_const.csv'
+    if not filename:
+        print("No filename passed.")
+        #sp_cons_csv = directory + 'sp_const.csv'
+        sp_cons_csv = directory + 'screener_results.csv'
+        print("Using filename '"+sp_cons_csv,"'")
+    else:
+        sp_cons_csv = filename
+        
     sp_df = pd.read_csv(sp_cons_csv)
     sp_df.sort_values('Symbol', ascending=True, inplace=True)
     stocklist = sp_df['Symbol'].str.lower()
@@ -101,7 +109,7 @@ def download_stock_data():
     urlB = '?range=' + data_range + '&interval=1d&indicators=quote&includeTimestamps=true'
 
     for s in stocklist:
-        print_over('-- Processing ... ' + s.upper())
+        print_over('-- Processing ... ' + s.upper() + '\n')
         # Create the yahoo finance URL
         url = urlA + s + urlB
         logevent(url)
@@ -330,14 +338,18 @@ def download_stocks_list():
     # write data into a json file
     try:
         with open('./data/stocks_list.json', 'w') as f:
-            json.dump(data, f, indent=4)
+            json.dump(data, f, indent=4)    
+            
+        #df = pd.read_json ('./data/stocks_list.json')
+        #df.to_csv ('./data/stocks_list.csv', index = None, header=True)
     except:
         logevent("ERROR: Opening/Writing file './data/stocks_list.json'", 'error')
 
 
 
-def main():
+def main(argv=''):
     logstart()
+    print(argv)
     print("Wait! Download in progress ... this may take a while")
     # uncomment the line below when done debugging
     print("-- Downloading stocks S&P list!")
@@ -347,7 +359,7 @@ def main():
     download_stocks_list()
 
     # Get S&P 500 Constituents, their Sectors, and Industry
-    get_sp_constituents()
+    get_sp_constituents(argv)
     print("-- Done!")
 
     # Get S&P 500 historical prices
@@ -365,4 +377,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    print('Arguments count :',len(sys.argv))
+    if(len(sys.argv)>1):
+        a = sys.argv[1:]
+        main(a[0])
+    else:
+        main()

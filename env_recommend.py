@@ -31,17 +31,22 @@ def get_sp_constituents(filename):
         
     sp_df = pd.read_csv(sp_cons_csv)
     sp_df.sort_values('Symbol', ascending=True, inplace=True)
+    sp_df.drop_duplicates(subset ="Symbol",  keep = "first", inplace = True) 
     stocklist = sp_df['Symbol'].str.lower()
+
 
 
 def main(argv):
     global stocklist
+    tcount = bcount = scount = 0
     print(directory+argv)
     get_sp_constituents(directory+argv)
     stock_count, stock_fields, sp_df = sd.init_stocks_data('./data/',argv)
     #print(stocklist)
     for s in stocklist:
         price_df = sd.GetStockDataFrame(s)
+        sd.set_stock(s)
+        stock_info = sd.get_stock_info(s)
         if(price_df.empty):
             continue
             
@@ -50,10 +55,20 @@ def main(argv):
         if(not rc):
             #print('Data not available for stock '+s.upper())
             continue
-        
+        tcount = tcount +1
         if(action_df['Recommendation'][0] == 'buy'):
-            print('BUY '+s.upper(), 'Current Price: $'+str(sd.quote(s).close[0]),action_df['Statement'][0])
-    
+            bcount = bcount +1
+            print(str(bcount)+'-'+'BUY '+':'+s.upper()+','+stock_info['name'][0]+','+ stock_info['sector'][0],
+            ',Close: $'+str(sd.quote(s).close[0]),', Statement : ',action_df['Statement'][0])
+            
+        if(action_df['Recommendation'][0] == 'sell'):
+            scount = scount +1
+        
+    print('Stocks processes = ',tcount)
+    print('Buy Recommendations = ',bcount)
+    print('Sell Recommendations = ',scount)
+        
+            
     
 if __name__ == "__main__":
     if(len(sys.argv)>1):

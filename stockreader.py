@@ -82,6 +82,7 @@ def get_sp_constituents(filename):
         
     sp_df = pd.read_csv(sp_cons_csv)
     sp_df.sort_values('Symbol', ascending=True, inplace=True)
+    sp_df.drop_duplicates(subset ="Symbol",  keep = "first", inplace = True) 
     stocklist = sp_df['Symbol'].str.lower()
 
 

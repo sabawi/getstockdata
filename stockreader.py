@@ -2,6 +2,7 @@
 """ Auth: Al Sabawi Feb 2020 """
 import os
 import sys
+import io
 import json
 import logging
 import time
@@ -13,6 +14,7 @@ import requests
 from urllib import request
 from urllib.request import urlopen
 from collections import defaultdict
+import pycurl
 
 # create a list of stock symbols
 directory = './data/'
@@ -103,7 +105,21 @@ def load_data_from_file(symbol):
         read_content = json.load(rfile)
     return read_content
 
-
+def get_yahoo_eod_data(url):
+    response = io.BytesIO()
+    c = pycurl.Curl()
+    c.setopt(c.URL,url)
+    c.setopt(c.HTTPHEADER, ['Content-Type: application/json','Accept-Charset: UTF-8'])
+    c.setopt(c.WRITEFUNCTION, response.write)
+    c.perform()
+    data = json.loads(response.getvalue())
+    c.close()
+    
+    #data = data.decode('utf-8')
+    #data = json.dumps(data)
+    #print(data)
+    return data
+    
 def download_stock_data():
     # make 2 parts of the yahoo URL so we can insert the symbol in between them
     urlA = 'https://query1.finance.yahoo.com/v7/finance/chart/'
@@ -117,8 +133,11 @@ def download_stock_data():
 
         # Request the data
         try:
-            stockdata = requests.get(url)
-            data = stockdata.json()
+            #print('requesting ', url)
+            #stockdata = requests.get(url,headers={'Content-Type': 'application/json','Accept-Charset': 'UTF-8'})
+            data = get_yahoo_eod_data(url)
+            #print('received')
+            #data = stockdata.json()
         except  urllib.error.URLError as e:
             logevent('ERROR ' + s + ' ' + e.reason, 'error')
             continue
@@ -353,11 +372,11 @@ def main(argv=''):
     print(argv)
     print("Wait! Download in progress ... this may take a while")
     # uncomment the line below when done debugging
-    print("-- Downloading stocks S&P list!")
-    download_sp_constituents()
+    ##print("-- Downloading stocks S&P list!")
+    ##download_sp_constituents()
 
-    print("-- Downloading general stocks list!")
-    download_stocks_list()
+    ##print("-- Downloading general stocks list!")
+    ##download_stocks_list()
 
     # Get S&P 500 Constituents, their Sectors, and Industry
     get_sp_constituents(argv)

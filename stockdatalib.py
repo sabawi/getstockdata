@@ -827,6 +827,7 @@ def GetBuySellEnvelope(s,price_df, period):
     
     buy_str = sell_str = buy_recom = sell_recom = ''
     buy_recommendation =  sell_recommendation = 'no' 
+    buy_at = sell_at = ''
     if date_last_buy > date_last_sell:
         range_buy  = round( price_last_buy,2)
         
@@ -836,6 +837,8 @@ def GetBuySellEnvelope(s,price_df, period):
         range_sell  = round( price_last_sell , 2)
         
         buy_str = str(round( price_last_buy,2))+' - '+ str( range_sell ) 
+        buy_at = round( price_last_buy,2)
+        sell_at = range_sell
         buy_recom = "Buy@"+str(range_buy)+' - '+'Sell@'+str(range_sell)
         
         if q.close[0] <= range_buy_plus_margin and range_buy_plus_margin < range_sell :
@@ -850,6 +853,8 @@ def GetBuySellEnvelope(s,price_df, period):
         range_buy = round( price_last_buy ,2)
         
         sell_str =  str( range_sell ) +' - '+ str(round( price_last_buy,2))
+        buy_at = round( price_last_buy,2)
+        sell_at = range_sell
         sell_recom = "Sell@"+str(range_sell)+' - '+'Buy@'+str(range_buy)
         if q.close[0] >= range_sell_minus_margin and range_sell_minus_margin > range_buy :
             sell_recommendation = 'sell'        
@@ -859,7 +864,8 @@ def GetBuySellEnvelope(s,price_df, period):
     
     dict = {'Signal':['Buy','Sell'],'Recommendation':[buy_recommendation,sell_recommendation], 'Statement':[buy_recom,sell_recom],
     'Last Date':[date_last_buy,date_last_sell],
-    'Average % Change':[ave_min_delta,ave_max_delta],'Signal Price':[price_last_buy,price_last_sell],'Range':[buy_str,sell_str]}
+    'Average % Change':[ave_min_delta,ave_max_delta],'Signal Price':[price_last_buy,price_last_sell],'Range':[buy_str,sell_str],
+    'BuyAt':buy_at,'SellAt':sell_at}
     
     action_df = pd.DataFrame(dict)
     
@@ -1106,3 +1112,71 @@ def init_stocks_data(data_dir,stocks_list_file):
     set_stocks_list_filename(stocks_list_file)
     stock_count, stock_fields, sp_df = GetStocksList()
     return stock_count, stock_fields, sp_df 
+
+def get_sp_constituents(filename):
+    stocklist = []
+    if not filename:
+        print("No filename passed.")
+        #sp_cons_csv = directory + 'sp_const.csv'
+        sp_cons_csv = directory + 'screener_results.csv'
+        print("Using filename '"+sp_cons_csv,"'")
+    else:
+        sp_cons_csv = filename
+        
+    sp_df = pd.read_csv(sp_cons_csv)
+    sp_df.sort_values('Symbol', ascending=True, inplace=True)
+    sp_df.drop_duplicates(subset ="Symbol",  keep = "first", inplace = True) 
+    stocklist = sp_df['Symbol'].str.lower()
+    
+    return stocklist
+
+def SaveBuySellList2File(recomm_filename,recomm_df):
+    recomm_df.to_csv(recomm_filename,index=False)
+    print('Table writen to file "'+recomm_filename+'"')
+        
+def GenerateBuySellList(directory,argv):
+    tcount = bcount = scount = 0
+    
+    print('Using stocks list in : ',directory+argv)
+    stocklist = get_sp_constituents(directory+argv)
+    stock_count, stock_fields, sp_df = init_stocks_data(directory,argv)
+    #print(stocklist)
+    
+    rec_columns=['Symbol','Name','Sector','Recommendation','Close','BuyAt','SellAt']
+    record = defaultdict(list) 
+    recomm_list = []
+    for s in stocklist:
+        price_df = GetStockDataFrame(s)
+        set_stock(s)
+        stock_info = get_stock_info(s)
+        if(price_df.empty):
+            continue
+            
+        price_df = DatesRange(price_df, '2019-08-01') # limit the data since a specific past date or a range
+        period = 28
+        rc, price_df2, low_df, hi_df, action_df = GetBuySellEnvelope(s,price_df, period)
+        if(not rc):
+            #print('Data not available for stock '+s.upper())
+            continue
+        tcount = tcount +1
+        if(action_df['Recommendation'][0] == 'buy'):
+            bcount = bcount +1
+            #print(str(bcount)+'-'+'BUY '+':'+s.upper()+','+stock_info['name'][0]+','+ stock_info['sector'][0],
+            #',Close: $'+str(quote(s).close[0]),', Statement : ',action_df['Statement'][0])
+            
+            record = {'Symbol':s.upper(),'Name': stock_info['name'][0], 'Sector':stock_info['sector'][0],
+                'Recommendation':'BUY','Close':quote(s).close[0],'BuyAt':action_df['BuyAt'][0],
+                'SellAt':action_df['SellAt'][0],'Upside $': round( action_df['SellAt'][0] - quote(s).close[0],2),
+                'Upside %': str( round( 100 * ((action_df['SellAt'][0] - quote(s).close[0] )/quote(s).close[0] )  ,2) )+'%',
+                'Ave. Hold (days)': 0}
+
+            recomm_list.append(record)
+            
+        if(action_df['Recommendation'][1] == 'sell'):
+            scount = scount +1
+            ## ToDo: Add records of Sell Recommendations here
+        
+    recomm_df = pd.DataFrame(recomm_list)
+    
+    return tcount, bcount, scount, recomm_df
+

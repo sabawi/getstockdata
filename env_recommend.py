@@ -141,7 +141,8 @@ def main(argv):
     directory = './data/'
 
     # Get the Buy Sell List
-    tcount, bcount, scount, recomm_df = sd.GenerateBuySellList(directory,argv)
+    period = 28
+    tcount, bcount, scount, recomm_df = sd.GenerateBuySellList(period,directory,argv)
     print(recomm_df)
     dateTimeObj = datetime.now()
     # create a list of stock symbols

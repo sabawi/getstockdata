@@ -1134,7 +1134,7 @@ def SaveBuySellList2File(recomm_filename,recomm_df):
     recomm_df.to_csv(recomm_filename,index=False)
     print('Table writen to file "'+recomm_filename+'"')
         
-def GenerateBuySellList(directory,argv):
+def GenerateBuySellList(period,directory,argv):
     tcount = bcount = scount = 0
     
     print('Using stocks list in : ',directory+argv)
@@ -1153,7 +1153,7 @@ def GenerateBuySellList(directory,argv):
             continue
             
         price_df = DatesRange(price_df, '2019-08-01') # limit the data since a specific past date or a range
-        period = 28
+
         rc, price_df2, low_df, hi_df, action_df = GetBuySellEnvelope(s,price_df, period)
         if(not rc):
             #print('Data not available for stock '+s.upper())

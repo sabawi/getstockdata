@@ -332,11 +332,24 @@ def stock_dataframe(symbol):
 
     return df
 
-
+def download_file(url,save_as_fullpath):
+    import wget
+    url = "https://pkgstore.datahub.io/core/s-and-p-500-companies/constituents_csv/data/b8d80d0c578007c9e0d199a6cd2625f1/constituents_csv.csv"
+    try:
+        wget.download(url, save_as_fullpath)
+        print("File '"+save_as_fullpath+"' Downloaded successfully")
+    except:
+        print("Error: Downloading SP Symbols from " + url)
+        return
+    
 def download_sp_constituents():
-    url = "https://datahub.io/core/s-and-p-500-companies/r/constituents.csv"
+    #url = "https://datahub.io/core/s-and-p-500-companies/r/constituents.csv"
+    #url = "https://datahub.io/core/s-and-p-500-companies/r/0.csv"
+    url = "https://pkgstore.datahub.io/core/s-and-p-500-companies/constituents_csv/data/b8d80d0c578007c9e0d199a6cd2625f1/constituents_csv.csv"
     try:
         data = request.urlopen(url).read().decode('utf-8')
+        print("Request for Data from '"+url+"' "+"Completed ...")
+        print("Data size = ",lend(data))
     except:
         print("Error: Downloading SP Symbols from " + url)
         return
@@ -372,9 +385,12 @@ def main(argv=''):
     print(argv)
     print("Wait! Download in progress ... this may take a while")
     # uncomment the line below when done debugging
-    ##print("-- Downloading stocks S&P list!")
-    ##download_sp_constituents()
-
+    print("-- Downloading stocks S&P list!")
+    #download_sp_constituents()
+    #splist_url = "https://pkgstore.datahub.io/core/s-and-p-500-companies/constituents_csv/data/b8d80d0c578007c9e0d199a6cd2625f1/constituents_csv.csv"
+    #save_as_fullpath = "./data/sp_const.csv"
+    #download_file(splist_url,save_as_fullpath)
+    
     ##print("-- Downloading general stocks list!")
     ##download_stocks_list()
 

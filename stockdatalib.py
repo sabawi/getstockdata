@@ -8,6 +8,7 @@ import json
 import pandas as pd
 import numpy as np
 import datetime as datetime
+from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 from scipy.signal import argrelextrema
 import scipy.stats as stats
@@ -1134,13 +1135,16 @@ def SaveBuySellList2File(recomm_filename,recomm_df):
     recomm_df.to_csv(recomm_filename,index=False)
     print('Table writen to file "'+recomm_filename+'"')
         
-def GenerateBuySellList(period,directory,argv):
+def GenerateBuySellList(period,directory,argv,years=1,months=0,weeks=0,days=0):
     tcount = bcount = scount = 0
     
     print('Using stocks list in : ',directory+argv)
     stocklist = get_sp_constituents(directory+argv)
     stock_count, stock_fields, sp_df = init_stocks_data(directory,argv)
     #print(stocklist)
+    
+    lookback_date = str(datetime.date.today()- relativedelta(years=years,months=months,weeks=weeks,days=days))
+    print("Start scanning from :"+lookback_date)
     
     rec_columns=['Symbol','Name','Sector','Recommendation','Close','BuyAt','SellAt']
     record = defaultdict(list) 
@@ -1152,7 +1156,8 @@ def GenerateBuySellList(period,directory,argv):
         if(price_df.empty):
             continue
             
-        price_df = DatesRange(price_df, '2019-08-01') # limit the data since a specific past date or a range
+
+        price_df = DatesRange(price_df, lookback_date) # limit the data since a specific past date or a range
 
         rc, price_df2, low_df, hi_df, action_df = GetBuySellEnvelope(s,price_df, period)
         if(not rc):

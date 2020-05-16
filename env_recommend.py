@@ -14,8 +14,7 @@ from datetime import datetime
 import pandas as pd
 import stockdatalib as sd
 from collections import defaultdict 
-from datetime import datetime
-
+from dateutil.relativedelta import relativedelta
 
 stocklist = []
 
@@ -141,9 +140,10 @@ def main(argv):
     directory = './data/'
 
     # Get the Buy Sell List
-    period = 28
-    tcount, bcount, scount, recomm_df = sd.GenerateBuySellList(period,directory,argv)
+    period = 10
+    tcount, bcount, scount, recomm_df = sd.GenerateBuySellList(period,directory,argv,years=1,months=0,weeks=0,days=0)
     print(recomm_df)
+    print("Scan Period: "+str(period),"Stocks screened: "+str(tcount), ", Buys:" +str(bcount),", Sells: "+str(scount))
     dateTimeObj = datetime.now()
     # create a list of stock symbols
     timestampStr = dateTimeObj.strftime("%Y-%b-%d-%H-%M-%S")
@@ -151,6 +151,8 @@ def main(argv):
     
     if not recomm_df.empty:
         recomm_filename = logdir + "stock_recommendations_" + timestampStr + ".csv"
+        sd.SaveBuySellList2File(recomm_filename,recomm_df)
+        recomm_filename = logdir + "stock_recommendations_latest.csv"
         sd.SaveBuySellList2File(recomm_filename,recomm_df)
     
 if __name__ == "__main__":

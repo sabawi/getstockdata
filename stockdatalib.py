@@ -60,7 +60,7 @@ def get_stock_info(symbol):
 
     symbol = symbol.lower()
     # Get stock company information
-    stock_info = sp_df[sp_df.Symbol == symbol.upper()]
+    stock_info = sp_df[sp_df['Symbol'] == symbol.upper()]
     company_name = stock_info['Name'].iloc[0]
     company_sector = stock_info['Sector'].iloc[0]
     return {'stock' : [stock], 'name': [company_name], 'sector':[company_sector]}

@@ -15,6 +15,7 @@ from urllib import request
 from urllib.request import urlopen
 from collections import defaultdict
 import pycurl
+import certifi
 
 # create a list of stock symbols
 directory = './data/'
@@ -108,6 +109,7 @@ def load_data_from_file(symbol):
 def get_yahoo_eod_data(url):
     response = io.BytesIO()
     c = pycurl.Curl()
+    c.setopt(pycurl.CAINFO, certifi.where())
     c.setopt(c.URL,url)
     c.setopt(c.HTTPHEADER, ['Content-Type: application/json','Accept-Charset: UTF-8'])
     c.setopt(c.WRITEFUNCTION, response.write)

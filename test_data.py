@@ -9,7 +9,7 @@ sd.set_data_directory('./data/')
 
 # # Load Data and plot a stock
 # Load S&P Stock list
-stock_count, stock_fields, sp_df = sd.GetSP500_List()
+stock_count, stock_fields, sp_df = sd.GetStocksList()
 
 # Set stock symbol
 sd.set_stock('aapl')
